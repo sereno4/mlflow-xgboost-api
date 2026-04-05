@@ -1,0 +1,7 @@
+data/*
+!data/.gitkeep
+artifacts/
+mlruns/
+__pycache__/
+*.py[cod]
+.env

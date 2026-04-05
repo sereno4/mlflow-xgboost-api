@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  mlflow:
+    image: python:3.10-slim
+    container_name: mlflow-server
+    working_dir: /app
+    volumes:
+      - .:/app
+      - mlflow_data:/mlflow
+    command: >
+      bash -c "pip install mlflow && 
+               mlflow server 
+               --host 0.0.0.0 
+               --port 5000 
+               --backend-store-uri sqlite:////mlflow/mlflow.db 
+               --default-artifact-root /mlflow/artifacts"
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+
+  api:
+    build: .
+    container_name: xgb-api
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - MODEL_RUN_ID=3a0452332cc74f2d978ed336782764ef
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mlflow
+    restart: unless-stopped
+    volumes:
+      - .:/app
+
+volumes:
+  mlflow_data:

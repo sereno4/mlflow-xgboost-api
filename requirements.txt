@@ -1,0 +1,7 @@
+mlflow
+scikit-learn
+pandas
+numpy
+xgboost>=2.0.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
