@@ -1,0 +1,30 @@
+{
+  "dashboard": {
+    "title": "XGBoost MLOps",
+    "panels": [
+      {
+        "title": "Predições por Minuto",
+        "type": "graph",
+        "targets": [{"expr": "rate(prediction_requests_total[1m])"}]
+      },
+      {
+        "title": "Latência P95",
+        "type": "stat",
+        "targets": [{"expr": "histogram_quantile(0.95, prediction_latency_seconds_bucket)"}]
+      },
+      {
+        "title": "Drift Score (KS)",
+        "type": "gauge",
+        "targets": [{"expr": "drift_ksi_score"}],
+        "thresholds": [{"value": 0.3, "colorMode": "critical"}]
+      },
+      {
+        "title": "Shadow Disagreement Rate",
+        "type": "graph",
+        "targets": [{"expr": "shadow_disagreement_rate"}]
+      }
+    ],
+    "time": {"from": "now-1h", "to": "now"},
+    "refresh": "10s"
+  }
+}
