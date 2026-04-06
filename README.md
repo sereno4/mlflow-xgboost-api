@@ -1,30 +1,26 @@
-# 🤖 XGBoost MLOps API — Production-Ready
+# OU
+code README.md
+# OU
+notepad.exe README.md
 
-[![Python 3.10](https://img.shields.io/badge/Python-3.10-blue?logo=python)](https://python.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.109-green?logo=fastapi)](https://fastapi.tiangolo.com)
-[![MLflow](https://img.shields.io/badge/MLflow-Tracking-blue?logo=mlflow)](https://mlflow.org)
-[![Docker](https://img.shields.io/badge/Docker-Compose-blue?logo=docker)](https://docker.com)
-[![CI/CD](https://github.com/sereno4/mlflow-xgboost-api/actions/workflows/ci.yml/badge.svg)](https://github.com/sereno4/mlflow-xgboost-api/actions)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Render](https://img.shields.io/badge/Deploy-Render-brightgreen?logo=render)](https://xgb-api-agp5.onrender.com)
-
-> Pipeline completo de MLOps: **treino versionado**, **serving com FastAPI**, **monitoramento de drift em tempo real**, **shadow deployment** e **observabilidade com Prometheus/Grafana**.
-
----
+# 👉 Dentro do editor: - Apague TUDO (Ctrl+A, Delete)# 🤖 XGBoost MLOps API — Production-Ready - Cole o README COMPLETO (com a seção de desacoplamento) - Salve (nano: Ctrl+O → Enter 
+#    → Ctrl+X)[![Python 3.10](https://img.shields.io/badge/Python-3.10-blue?logo=python)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.109-green?logo=fastapi)](https://fastapi.tiangolo.com) 
+[![MLflow](https://img.shields.io/badge/MLflow-Tracking-blue?logo=mlflow)](https://mlflow.org) 
+[![Docker](https://img.shields.io/badge/Docker-Compose-blue?logo=docker)](https://docker.com) 
+[![CI/CD](https://github.com/sereno4/mlflow-xgboost-api/actions/workflows/ci.yml/badge.svg)](https://github.com/sereno4/mlflow-xgboost-api/actions) [![License: 
+MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![Render](https://img.shields.io/badge/Deploy-Render-brightgreen?logo=render)](https://xgb-api-agp5.onrender.com)
+# 4. Commit + Push
+git add -A> Pipeline completo de MLOps: **treino versionado**, **serving com FastAPI**, **monitoramento de drift em tempo real**, **shadow deployment** e **observabilidade com 
+Prometheus/Grafana**. git commit -m "docs: README completo com arquitetura desacoplada, shadow deployment e drift monitoring ---
 
 ## 📊 Resultados do Modelo
-
-| Métrica | Valor |
-|---------|-------|
-| **Accuracy** | 96% |
-| **Precision** | 97% |
-| **ROC-AUC** | 99.2% |
-| **Latência P95** | <50ms |
-| **Drift Detection** | KS Test + PSI |
-
----
-
-## 🏗️ Arquitetura
+- Adiciona seção de loose coupling com tabela de componentes - Documenta fluxo de predição assíncrono| Métrica | Valor | - Inclui exemplo de ModelLoader com cache e injeção de 
+dependência|---------|-------| - Atualiza badges, stack e instruções de deploy"| **Accuracy** | 96% | git push origin main| **Precision** | 97% |
+| **ROC-AUC** | 99.2% | **Latência P95** | <50ms | **Drift Detection** | KS Test + PSI |
+# 5. Confirmar
+git log --oneline -3--- echo "✅ Pronto! Acesse: https://github.com/sereno4/mlflow-xgboost-api/blob/main/README.md"
+y## 🏗️ Arquitetura
 
 ┌─────────────────────────────────────────┐
 │ 🌐 API FastAPI (Porta 8000) │
