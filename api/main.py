@@ -1,54 +1,45 @@
-from typing import List, Optional
 import os
 import logging
-import mlflow.xgboost
 import xgboost as xgb
 import numpy as np
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
-from .schemas import PredictionRequest, PredictionResponse, HealthResponse
+from pydantic import BaseModel, Field
+from typing import List
 
-# Configuração de logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Variáveis de ambiente
-MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
-MODEL_RUN_ID = os.getenv("MODEL_RUN_ID", "3a0452332cc74f2d978ed336782764ef")
+# Schema de request/response (inline, sem importar de schemas.py para evitar dependências)
+class PredictionRequest(BaseModel):
+    features: List[float] = Field(..., min_length=30, max_length=30)
 
-# Modelo global
-model = None
+class PredictionResponse(BaseModel):
+    prediction: int
+    probability: float
+    confidence: str
+    model_version: str = "prod-v1"
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Carregar modelo na inicialização"""
-    global model
-    try:
-        mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
-        model = mlflow.xgboost.load_model(f"runs:/{MODEL_RUN_ID}/modelo_xgboost")
-        logger.info(f"✅ Modelo carregado com sucesso da run: {MODEL_RUN_ID[:8]}...")
-    except Exception as e:
-        logger.error(f"❌ Erro ao carregar modelo: {e}")
-        raise
-    yield
-    # Cleanup (se necessário)
-    logger.info("👋 Shutting down API...")
+class HealthResponse(BaseModel):
+    status: str
+    model_loaded: bool
 
-# Inicializar FastAPI
-app = FastAPI(
-    title="XGBoost Prediction API",
-    description="API de predição com modelo XGBoost treinado e versionado via MLflow",
-    version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
-    lifespan=lifespan
-)
+# Caminho do modelo exportado (já está no repo)
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "model.json")
 
-# CORS (permitir requisições de outros domínios)
+# Carregar modelo NA INICIALIZAÇÃO (fora do lifespan, para garantir bind da porta)
+logger.info(f"🔍 Carregando modelo de {MODEL_PATH}...")
+model = xgb.Booster()
+model.load_model(MODEL_PATH)
+FEATURE_NAMES = model.feature_names or [f"f{i}" for i in range(30)]
+logger.info(f"✅ Modelo carregado | Features: {len(FEATURE_NAMES)}")
+
+# Iniciar app
+app = FastAPI(title="XGBoost Prediction API", version="2.0.0", docs_url="/docs", redoc_url="/redoc")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Em produção, especifique os domínios permitidos
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -56,81 +47,53 @@ app.add_middleware(
 
 @app.get("/", response_model=HealthResponse)
 async def root():
-    """Health check da API"""
-    return HealthResponse(
-        status="healthy",
-        model_loaded=model is not None,
-        mlflow_tracking_uri=MLFLOW_TRACKING_URI
-    )
+    return HealthResponse(status="healthy", model_loaded=True)
 
 @app.get("/health")
 async def health():
-    """Endpoint simples de saúde"""
-    return {"status": "ok", "model": "loaded" if model else "not_loaded"}
+    return {"status": "ok", "model": "loaded"}
 
 @app.post("/predict", response_model=PredictionResponse)
-async def predict(request: PredictionRequest):
-    """
-    Faz predição usando o modelo XGBoost carregado.
-    
-    - **features**: Lista de 30 features numéricas
-    - **return**: Predição (0 ou 1), probabilidade e confiança
-    """
+async def predict(req: PredictionRequest):
     try:
-        # Converter para numpy array
-        features_array = np.array(request.features).reshape(1, -1)
+        # Validar número de features
+        if len(req.features) != 30:
+            raise HTTPException(status_code=400, detail=f"Expected 30 features, got {len(req.features)}")
         
-        # Criar DMatrix para XGBoost
-        dmatrix = xgb.DMatrix(features_array)
-        
-        # Fazer predição
+        # Predição
+        dmatrix = xgb.DMatrix([req.features], feature_names=FEATURE_NAMES)
         prob = float(model.predict(dmatrix)[0])
-        prediction = 1 if prob > 0.5 else 0
+        pred = 1 if prob > 0.5 else 0
         
         # Calcular confiança
-        confidence_score = max(prob, 1 - prob)
-        if confidence_score >= 0.9:
-            confidence = "alta"
-        elif confidence_score >= 0.7:
-            confidence = "media"
-        else:
-            confidence = "baixa"
+        conf_score = max(prob, 1 - prob)
+        confidence = "alta" if conf_score >= 0.9 else "media" if conf_score >= 0.7 else "baixa"
         
-        logger.info(f"🔮 Predição: {prediction} | Prob: {prob:.4f} | Conf: {confidence}")
+        logger.info(f"🔮 Predição: {pred} | Prob: {prob:.4f} | Conf: {confidence}")
         
         return PredictionResponse(
-            prediction=prediction,
+            prediction=pred,
             probability=round(prob, 4),
             confidence=confidence,
-            model_version=MODEL_RUN_ID
+            model_version="prod-v1"
         )
-        
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"❌ Erro na predição: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao processar predição: {str(e)}"
-        )
-
-@app.post("/predict/batch")
-async def predict_batch(requests: List[PredictionRequest]):
-    """Predição em batch (múltiplas amostras)"""
-    results = []
-    for req in requests:
-        result = await predict(req)
-        results.append(result)
-    return {"predictions": results, "count": len(results)}
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/model/info")
 async def model_info():
-    """Informações do modelo carregado"""
     return {
-        "run_id": MODEL_RUN_ID,
-        "tracking_uri": MLFLOW_TRACKING_URI,
-        "type": "xgboost.Booster",
-        "loaded": model is not None
+        "model_type": "xgboost.Booster",
+        "feature_count": len(FEATURE_NAMES),
+        "loaded": True,
+        "version": "prod-v1"
     }
 
+# Entry point para uvicorn
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.getenv("PORT", 10000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
